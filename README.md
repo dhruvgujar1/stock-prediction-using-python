@@ -1,0 +1,1 @@
+A Python-based stock prediction application that utilizes historical market data and machine learning to forecast stock prices. Built with [mention key libraries like Pandas, Scikit-learn, TensorFlow, etc.], it provides insightful trends and predictions to assist in investment decisions.
