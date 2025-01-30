@@ -1,0 +1,96 @@
+import yfinance as yf
+import pandas as pd
+import matplotlib.pyplot as plt
+from statsmodels.tsa.arima.model import ARIMA
+from datetime import datetime
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import ttk
+
+def predict_stock(ticker, start_date='2015-01-01', forecast_days=30):
+
+    end_date = datetime.today().strftime('%Y-%m-%d')
+    data = yf.download(ticker, start=start_date, end=end_date)
+    
+    if data.empty:
+        messagebox.showerror("Error", f"No data found for ticker symbol {ticker}. Please check the symbol.")
+        return
+    stock_data = data['Close']
+    
+   
+    model = ARIMA(stock_data, order=(5, 1, 0))
+    model_fit = model.fit()
+    
+    forecast = model_fit.forecast(steps=forecast_days)
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(stock_data, label='Historical Data')
+    ax.plot(pd.date_range(stock_data.index[-1], periods=forecast_days, freq='B'), forecast, label='Forecast', color='red')
+    ax.set_title(f'{ticker} Stock Price Forecast for Next {forecast_days} Days')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Close Price')
+    ax.legend()
+    
+  
+    plt.tight_layout()
+    plt.show()
+
+def run_gui():
+    def on_predict_button_click():
+        ticker = ticker_entry.get().upper()  
+        forecast_duration = forecast_entry.get()
+        
+        if not ticker:
+            messagebox.showwarning("Input Error", "Please enter a valid stock ticker symbol.")
+            return
+        
+        try:
+            forecast_duration = int(forecast_duration)
+            if forecast_duration <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("Input Error", "Please enter a valid number for forecast days.")
+            return
+
+
+        ticker_entry.config(state='disabled')
+        forecast_entry.config(state='disabled')
+        predict_button.config(state='disabled')
+        loading_label.grid(row=4, column=0, columnspan=2)
+        
+
+        try:
+            predict_stock(ticker, forecast_days=forecast_duration)
+        finally:
+            ticker_entry.config(state='normal')
+            forecast_entry.config(state='normal')
+            predict_button.config(state='normal')
+            loading_label.grid_forget()  
+
+    root = tk.Tk()
+    root.title("Stock Price Prediction")
+
+    root.geometry("400x250")
+
+
+    label = tk.Label(root, text="Enter Stock Ticker (e.g., AAPL, TSLA, MSFT):", font=("Arial", 12))
+    label.grid(row=0, column=0, pady=10, padx=10, sticky="w")
+
+    ticker_entry = tk.Entry(root, font=("Arial", 12), width=20)
+    ticker_entry.grid(row=0, column=1, pady=5, padx=10)
+
+    forecast_label = tk.Label(root, text="Enter forecast duration (days):", font=("Arial", 12))
+    forecast_label.grid(row=1, column=0, pady=10, padx=10, sticky="w")
+
+    forecast_entry = tk.Entry(root, font=("Arial", 12), width=20)
+    forecast_entry.grid(row=1, column=1, pady=5, padx=10)
+
+    predict_button = tk.Button(root, text="Predict", font=("Arial", 12), command=on_predict_button_click)
+    predict_button.grid(row=3, column=0, columnspan=2, pady=20)
+
+    loading_label = tk.Label(root, text="Processing, please wait...", font=("Arial", 12), fg="blue")
+    loading_label.grid(row=4, column=0, columnspan=2)
+    loading_label.grid_forget()  # Hide initially
+    root.mainloop()
+
+run_gui()
